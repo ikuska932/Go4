@@ -1,0 +1,54 @@
+package db
+
+import (
+    "database/sql"
+    "fmt"
+    _ "github.com/go-sql-driver/mysql"
+)
+
+var db *sql.DB
+
+func InitDB(dataSourceName string) error {
+    var err error
+    db, err = sql.Open("mysql", dataSourceName)
+    if err != nil {
+        return fmt.Errorf("Error connecting to the database: %v", err)
+    }
+
+    if err = db.Ping(); err != nil {
+        return fmt.Errorf("Error pinging the database: %v", err)
+    }
+
+    return nil
+}
+
+func AddAnimal(name string, speciesID, environmentID int) error {
+    _, err := db.Exec("INSERT INTO animals (name, species_id, environment_id) VALUES (?, ?, ?)", name, speciesID, environmentID)
+    if err != nil {
+        return fmt.Errorf("Error inserting animal: %v", err)
+    }
+    return nil
+}
+
+func GetAllAnimals() ([]Animal, error) {
+    rows, err := db.Query("SELECT id, name FROM animals ORDER BY name ASC")
+    if err != nil {
+        return nil, fmt.Errorf("Error fetching animals: %v", err)
+    }
+    defer rows.Close()
+
+    var animals []Animal
+    for rows.Next() {
+        var animal Animal
+        if err := rows.Scan(&animal.ID, &animal.Name); err != nil {
+            return nil, fmt.Errorf("Error scanning row: %v", err)
+        }
+        animals = append(animals, animal)
+    }
+
+    return animals, nil
+}
+
+func CloseDB() error {
+    return db.Close()
+}
